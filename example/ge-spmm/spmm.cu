@@ -118,20 +118,20 @@ int main(int argc, const char **argv) {
   void *workspace = NULL;
   CUDA_CHECK(cudaMalloc(&workspace, workspace_size));
 
-  // run SpMM
-  CUSPARSE_CHECK(cusparseSpMM(handle,
-                              CUSPARSE_OPERATION_NON_TRANSPOSE, // opA
-                              CUSPARSE_OPERATION_NON_TRANSPOSE, // opB
-                              &alpha, csrDescr, dnMatInputDescr, &beta,
-                              dnMatOutputDescr, CUDA_R_32F,
-                              CUSPARSE_SPMM_ALG_DEFAULT, workspace));
-
-  CUDA_CHECK(
-      cudaMemcpy(C_h, C_d, sizeof(float) * M * N, cudaMemcpyDeviceToHost));
-
-  spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
-                                  csr_indices_buffer.data(), csr_values_h, B_h,
-                                  C_ref);
+//  // run SpMM
+//  CUSPARSE_CHECK(cusparseSpMM(handle,
+//                              CUSPARSE_OPERATION_NON_TRANSPOSE, // opA
+//                              CUSPARSE_OPERATION_NON_TRANSPOSE, // opB
+//                              &alpha, csrDescr, dnMatInputDescr, &beta,
+//                              dnMatOutputDescr, CUDA_R_32F,
+//                              CUSPARSE_SPMM_ALG_DEFAULT, workspace));
+//
+//  CUDA_CHECK(
+//      cudaMemcpy(C_h, C_d, sizeof(float) * M * N, cudaMemcpyDeviceToHost));
+//
+//  spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
+//                                  csr_indices_buffer.data(), csr_values_h, B_h,
+//                                  C_ref);
 
 //  bool correct = check_result<float>(M, N, C_h, C_ref);
 
