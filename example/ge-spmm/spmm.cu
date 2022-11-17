@@ -142,8 +142,8 @@ int main(int argc, const char **argv) {
   if (1) {
 
     GpuTimer gpu_timer;
-    int warmup_iter = 10;
-    int repeat_iter = 100;
+    int warmup_iter = 0;
+    int repeat_iter = 1000;
     for (int iter = 0; iter < warmup_iter + repeat_iter; iter++) {
       if (iter == warmup_iter) {
         gpu_timer.start();
