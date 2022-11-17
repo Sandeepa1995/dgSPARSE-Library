@@ -168,60 +168,60 @@ int main(int argc, const char **argv) {
            M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs, gflops);
   }
 
-  SpMatCsrDescr_t spmatA{M, K, nnz, csr_indptr_d, csr_indices_d, csr_values_d};
-  gespmmAlg_t algs[] = {
-      GESPMM_ALG_SEQREDUCE_ROWBALANCE,  GESPMM_ALG_PARREDUCE_ROWBALANCE,
-      GESPMM_ALG_SEQREDUCE_NNZBALANCE,  GESPMM_ALG_PARREDUCE_NNZBALANCE,
-      GESPMM_ALG_ROWCACHING_ROWBALANCE, GESPMM_ALG_ROWCACHING_NNZBALANCE};
-
-  for (auto alg : algs) {
-
-    //
-    // Run GE-SpMM and check result
-    //
-
-    CUDA_CHECK(cudaMemset(C_d, 0x0, sizeof(float) * M * N));
-
-    gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
-
-    cudaDeviceSynchronize();
-    CUDA_CHECK(
-        cudaMemcpy(C_h, C_d, sizeof(float) * M * N, cudaMemcpyDeviceToHost));
-
-    spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
-                                    csr_indices_buffer.data(), csr_values_h,
-                                    B_h, C_ref);
-
-//    bool correct = check_result<float>(M, N, C_h, C_ref);
-
-    if (1) {
-
-      // benchmark GE-SpMM performance
-
-      GpuTimer gpu_timer;
-      int warmup_iter = 10;
-      int repeat_iter = 100;
-      for (int iter = 0; iter < warmup_iter + repeat_iter; iter++) {
-        if (iter == warmup_iter) {
-          gpu_timer.start();
-        }
-
-        gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
-      }
-      gpu_timer.stop();
-
-      float kernel_dur_msecs = gpu_timer.elapsed_msecs() / repeat_iter;
-
-      float MFlop_count = (float)nnz / 1e6 * N * 2;
-
-      float gflops = MFlop_count / kernel_dur_msecs;
-
-      printf("[GE-SpMM][Alg: %d] Report: spmm A(%d x %d) * B(%d x %d) sparsity "
-             "%f (nnz=%d) \n Time %f (ms), Throughput %f (gflops).\n",
-             alg, M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs,
-             gflops);
-    }
-  }
+//  SpMatCsrDescr_t spmatA{M, K, nnz, csr_indptr_d, csr_indices_d, csr_values_d};
+//  gespmmAlg_t algs[] = {
+//      GESPMM_ALG_SEQREDUCE_ROWBALANCE,  GESPMM_ALG_PARREDUCE_ROWBALANCE,
+//      GESPMM_ALG_SEQREDUCE_NNZBALANCE,  GESPMM_ALG_PARREDUCE_NNZBALANCE,
+//      GESPMM_ALG_ROWCACHING_ROWBALANCE, GESPMM_ALG_ROWCACHING_NNZBALANCE};
+//
+//  for (auto alg : algs) {
+//
+//    //
+//    // Run GE-SpMM and check result
+//    //
+//
+//    CUDA_CHECK(cudaMemset(C_d, 0x0, sizeof(float) * M * N));
+//
+//    gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
+//
+//    cudaDeviceSynchronize();
+//    CUDA_CHECK(
+//        cudaMemcpy(C_h, C_d, sizeof(float) * M * N, cudaMemcpyDeviceToHost));
+//
+//    spmm_reference_host<int, float>(M, N, K, csr_indptr_buffer.data(),
+//                                    csr_indices_buffer.data(), csr_values_h,
+//                                    B_h, C_ref);
+//
+////    bool correct = check_result<float>(M, N, C_h, C_ref);
+//
+//    if (1) {
+//
+//      // benchmark GE-SpMM performance
+//
+//      GpuTimer gpu_timer;
+//      int warmup_iter = 10;
+//      int repeat_iter = 100;
+//      for (int iter = 0; iter < warmup_iter + repeat_iter; iter++) {
+//        if (iter == warmup_iter) {
+//          gpu_timer.start();
+//        }
+//
+//        gespmmCsrSpMM(spmatA, B_d, N, C_d, true, alg);
+//      }
+//      gpu_timer.stop();
+//
+//      float kernel_dur_msecs = gpu_timer.elapsed_msecs() / repeat_iter;
+//
+//      float MFlop_count = (float)nnz / 1e6 * N * 2;
+//
+//      float gflops = MFlop_count / kernel_dur_msecs;
+//
+//      printf("[GE-SpMM][Alg: %d] Report: spmm A(%d x %d) * B(%d x %d) sparsity "
+//             "%f (nnz=%d) \n Time %f (ms), Throughput %f (gflops).\n",
+//             alg, M, K, K, N, (float)nnz / M / K, nnz, kernel_dur_msecs,
+//             gflops);
+//    }
+//  }
 
   /// free memory
 
