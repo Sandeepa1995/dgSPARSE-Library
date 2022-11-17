@@ -1,5 +1,5 @@
 BASE_PATH := $(PWD)/example
-SUB_DIR := ge-spmm sddmm\
+SUB_DIR := ge-spmm sddmm sddmm_warm\
 
 .PHONY : clean $(SUB_DIR)
 
