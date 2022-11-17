@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
             K > 0 &&
             "second command-line argument is number of B columns, should be >0.\n");
 
-    int iters = stoi(std::string(argv[3]));
+    int iters = 1000;
 
     float kernel_time, d2h_time, h2d_time, event_time;
     std::vector<float> event_times;
