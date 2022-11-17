@@ -15,19 +15,19 @@
 /* This example need CUDA Version >=11.3 */
 // correspond with benchmark
 
-double calc_std(std::vector<float> vec) {
-    if ((float) vec.size() > 0) {
+double calc_std(std::vector<float> vec){
+    if ((float)vec.size() > 0){
         float mean = 0;
-        for (auto val: vec) {
+        for (auto val: vec){
             mean += val;
         }
-        mean /= (float) vec.size();
+        mean /= (float)vec.size();
 
         float std = 0;
         std::for_each(std::begin(vec), std::end(vec), [&](const float d) {
             std += (d - mean) * (d - mean);
         });
-        return sqrt(std / ((float) vec.size() - 1));
+        return sqrt(std / ((float)vec.size() - 1));
     }
     return 0;
 }
@@ -91,97 +91,82 @@ int main(int argc, char *argv[]) {
     fill_random(A_h, M * K);
     fill_random(B_h, N * K);
 
-    fill_zero(csr_values_h, nnz);
-    cudaDeviceReset();
-    cudaSetDevice(0);
-
-    cudaEvent_t start_d2h, stop_d2h, start_h2d, stop_h2d, start_e, stop_e, start_w, stop_w;
-    cudaEventCreate(&start_e);
-    cudaEventCreate(&stop_e);
-    cudaEventCreate(&start_d2h);
-    cudaEventCreate(&stop_d2h);
-    cudaEventCreate(&start_h2d);
-    cudaEventCreate(&stop_h2d);
-    cudaEventCreate(&start_w);
-    cudaEventCreate(&stop_w);
-
-    // allocate device memory
-    cudaEventRecord(start_e);
-    CUDA_CHECK(cudaMalloc((void **) &A_d, sizeof(float) * M * K));
-    CUDA_CHECK(cudaMalloc((void **) &B_d, sizeof(float) * N * K));
-    CUDA_CHECK(cudaMalloc((void **) &csr_values_d, sizeof(float) * nnz));
-    CUDA_CHECK(cudaMalloc((void **) &csr_indptr_d, sizeof(int) * (M + 1)));
-    CUDA_CHECK(cudaMalloc((void **) &csr_indices_d, sizeof(int) * nnz));
-
-    cudaEventRecord(start_h2d);
-    CUDA_CHECK(
-            cudaMemcpy(A_d, A_h, sizeof(float) * M * K, cudaMemcpyHostToDevice));
-    CUDA_CHECK(
-            cudaMemcpy(B_d, B_h, sizeof(float) * N * K, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(csr_indptr_d, csr_indptr_buffer.data(),
-                          sizeof(int) * (M + 1), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(csr_indices_d, csr_indices_buffer.data(),
-                          sizeof(int) * nnz, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(csr_values_d, csr_values_h, sizeof(float) * nnz,
-                          cudaMemcpyHostToDevice));
-    cudaEventRecord(stop_h2d);
-
-    cudaEventRecord(start_w);
-    for (int x = 0; x < 10; x++) {
-        sddmm_cuda_csr(M, K, nnz, csr_indptr_d, csr_indices_d, A_d, B_d, csr_values_d);
-    }
-    cudaEventRecord(stop_w);
-
     for (int x = 0; x < iters; x++) {
-        cudaEvent_t start_k, stop_k;
+        fill_zero(csr_values_h, nnz);
+        cudaDeviceReset();
+        cudaSetDevice(0);
+
+        cudaEvent_t start_k, stop_k, start_d2h, stop_d2h, start_h2d, stop_h2d, start_e, stop_e;
         cudaEventCreate(&start_k);
         cudaEventCreate(&stop_k);
+        cudaEventCreate(&start_e);
+        cudaEventCreate(&stop_e);
+        cudaEventCreate(&start_d2h);
+        cudaEventCreate(&stop_d2h);
+        cudaEventCreate(&start_h2d);
+        cudaEventCreate(&stop_h2d);
+
+        // allocate device memory
+        cudaEventRecord(start_e);
+        CUDA_CHECK(cudaMalloc((void **) &A_d, sizeof(float) * M * K));
+        CUDA_CHECK(cudaMalloc((void **) &B_d, sizeof(float) * N * K));
+        CUDA_CHECK(cudaMalloc((void **) &csr_values_d, sizeof(float) * nnz));
+        CUDA_CHECK(cudaMalloc((void **) &csr_indptr_d, sizeof(int) * (M + 1)));
+        CUDA_CHECK(cudaMalloc((void **) &csr_indices_d, sizeof(int) * nnz));
+
+        cudaEventRecord(start_h2d);
+        CUDA_CHECK(
+                cudaMemcpy(A_d, A_h, sizeof(float) * M * K, cudaMemcpyHostToDevice));
+        CUDA_CHECK(
+                cudaMemcpy(B_d, B_h, sizeof(float) * N * K, cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(csr_indptr_d, csr_indptr_buffer.data(),
+                              sizeof(int) * (M + 1), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(csr_indices_d, csr_indices_buffer.data(),
+                              sizeof(int) * nnz, cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(csr_values_d, csr_values_h, sizeof(float) * nnz,
+                              cudaMemcpyHostToDevice));
+        cudaEventRecord(stop_h2d);
 
         cudaEventRecord(start_k);
         sddmm_cuda_csr(M, K, nnz, csr_indptr_d, csr_indices_d, A_d, B_d, csr_values_d);
         cudaEventRecord(stop_k);
+
+        cudaEventRecord(start_d2h);
+        CUDA_CHECK(cudaMemcpy(csr_values_h, csr_values_d, nnz * sizeof(float),
+                              cudaMemcpyDeviceToHost));
+        cudaEventRecord(stop_d2h);
+        cudaEventRecord(stop_e);
+
+        if (A_d) CUDA_CHECK(cudaFree(A_d));
+        if (B_d) CUDA_CHECK(cudaFree(B_d));
+        if (csr_values_d) CUDA_CHECK(cudaFree(csr_values_d));
+        if (csr_indptr_d) CUDA_CHECK(cudaFree(csr_indptr_d));
+        if (csr_indices_d) CUDA_CHECK(cudaFree(csr_indices_d));
+
+        cudaEventSynchronize(start_e);
+        cudaEventSynchronize(stop_e);
+        cudaEventSynchronize(stop_h2d);
+        cudaEventSynchronize(stop_d2h);
         cudaEventSynchronize(start_k);
         cudaEventSynchronize(stop_k);
 
         float local_kernel = 0;
         cudaEventElapsedTime(&local_kernel, start_k, stop_k);
         kernel_time += local_kernel / 1000;
+
+        float local_d2h = 0;
+        cudaEventElapsedTime(&local_d2h, start_d2h, stop_d2h);
+        d2h_time += local_d2h / 1000;
+
+        float local_h2d = 0;
+        cudaEventElapsedTime(&local_h2d, start_h2d, stop_h2d);
+        h2d_time += local_h2d / 1000;
+
+        float local_event = 0;
+        cudaEventElapsedTime(&local_event, start_e, stop_e);
+        event_time += local_event / 1000;
+        event_times.push_back(local_event / 1000);
     }
-
-    cudaEventRecord(start_d2h);
-    CUDA_CHECK(cudaMemcpy(csr_values_h, csr_values_d, nnz * sizeof(float),
-                          cudaMemcpyDeviceToHost));
-    cudaEventRecord(stop_d2h);
-    cudaEventRecord(stop_e);
-
-    if (A_d) CUDA_CHECK(cudaFree(A_d));
-    if (B_d) CUDA_CHECK(cudaFree(B_d));
-    if (csr_values_d) CUDA_CHECK(cudaFree(csr_values_d));
-    if (csr_indptr_d) CUDA_CHECK(cudaFree(csr_indptr_d));
-    if (csr_indices_d) CUDA_CHECK(cudaFree(csr_indices_d));
-
-    cudaEventSynchronize(start_e);
-    cudaEventSynchronize(stop_e);
-    cudaEventSynchronize(stop_h2d);
-    cudaEventSynchronize(stop_d2h);
-    cudaEventSynchronize(start_w);
-    cudaEventSynchronize(stop_w);
-
-    float local_w = 0;
-    cudaEventElapsedTime(&local_w, start_w, stop_w);
-
-    float local_d2h = 0;
-    cudaEventElapsedTime(&local_d2h, start_d2h, stop_d2h);
-    d2h_time += local_w / 1000;
-
-    float local_h2d = 0;
-    cudaEventElapsedTime(&local_h2d, start_h2d, stop_h2d);
-    h2d_time += local_h2d / 1000;
-
-    float local_event = 0;
-    cudaEventElapsedTime(&local_event, start_e, stop_e);
-    event_time += (local_event - local_w) / 1000;
-    event_times.push_back((local_event - local_w) / 1000);
 
     if (A_h)
         free(A_h);
@@ -194,10 +179,10 @@ int main(int argc, char *argv[]) {
     if (csr_values_h)
         free(csr_values_h);
 
-    std::cout << h2d_time << '\t'
+    std::cout << h2d_time / (iters) << '\t'
               << kernel_time / (iters) << '\t'
-              << d2h_time << '\t'
-              << event_time << '\t'
+              << d2h_time / (iters) << '\t'
+              << event_time / (iters) << '\t'
               << calc_std(event_times) << std::endl;
 
     return 0;
