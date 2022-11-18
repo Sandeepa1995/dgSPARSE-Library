@@ -215,7 +215,9 @@ void read_mtx_file(const char *filename, int &nrow, int &ncol, int &nnz,
             int j = std::get<1>(*iter);
 
             new_coords.push_back(std::make_tuple(i, j));
-            new_coords.push_back(std::make_tuple(j, i));
+            if (i != j) {
+                new_coords.push_back(std::make_tuple(j, i));
+            }
         }
         std::sort(new_coords.begin(), new_coords.end());
         coords.clear();
